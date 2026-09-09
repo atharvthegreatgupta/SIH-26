@@ -38,7 +38,7 @@ export default function Demo() {
 
     try {
       // Assuming your server.js runs on port 5000
-      const response = await fetch('http://localhost:5000/api/forecast', {
+      const response = await fetch('https://sih-26-backend.onrender.com/api/forecast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(forecastParams)
