@@ -40,7 +40,7 @@ const PORTS_DATA = [
 ];
 
 export default function WorldMap() {
-  const globeRef = useRef<any>();
+  const globeRef = useRef<any>(null);
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight
