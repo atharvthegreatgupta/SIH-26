@@ -19,9 +19,10 @@ export default function Demo() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [forecastReport, setForecastReport] = useState<string | null>(null);
   
-  // Cursor Ship State
-  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
-  const [isShipVisible, setIsShipVisible] = useState(false);
+  // Smooth LERP ship animation state
+  const [mousePos, setMousePos] = useState({ x: window.innerWidth - 250, y: 200 });
+  const [shipPos, setShipPos] = useState({ x: window.innerWidth - 250, y: 200 });
+  const [isShipVisible, setIsShipVisible] = useState(true);
 
   const [forecastParams, setForecastParams] = useState({
     loadingPort: 'Hay Point (AUS)',
@@ -32,29 +33,43 @@ export default function Demo() {
     portClearance: 'Draft Clearance: 15.8m OK'
   });
 
-  // Track cursor movement with strict boundary checks to keep ship out of the globe and panels
+  // Track cursor and run smooth LERP physics loop
   useEffect(() => {
+    let animationFrameId: number;
+
     const handleMouseMove = (e: MouseEvent) => {
       const x = e.clientX;
       const y = e.clientY;
       const screenWidth = window.innerWidth;
       
-      // Define UI and Globe exclusion zones
-      const inLeftPanel = x < 370 && y < 650;
-      const inRightPanel = x > screenWidth - 440 && forecastReport !== null;
-      const inGlobeArea = x >= 350 && x <= screenWidth - 420; // Blocks it from entering the center globe
-
-      if (inLeftPanel || inRightPanel || inGlobeArea) {
-        setIsShipVisible(false);
-      } else {
+      // Restrict ship to the open right margin so it never overlaps the globe or panels
+      const inSafeZone = x > 420 && x < screenWidth - 100 && y > 100 && y < window.innerHeight - 100;
+      
+      if (inSafeZone) {
         setIsShipVisible(true);
         setMousePos({ x, y });
+      } else {
+        setIsShipVisible(false);
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [forecastReport]);
+
+    // Butter-smooth interpolation loop (lower decimal = slower, smoother glide)
+    const render = () => {
+      setShipPos(prev => ({
+        x: prev.x + (mousePos.x - prev.x) * 0.04,
+        y: prev.y + (mousePos.y - prev.y) * 0.04
+      }));
+      animationFrameId = requestAnimationFrame(render);
+    };
+    animationFrameId = requestAnimationFrame(render);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [mousePos]);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -131,20 +146,27 @@ export default function Demo() {
         `}
       </style>
 
-      {/* FLOATING CURSOR CARGO SHIP (HACKATHON EASTER EGG) */}
+      {/* REALISTIC CONTAINER SHIP WITH SLOW LERP PHYSICS */}
       {isShipVisible && (
         <div 
-          className="fixed pointer-events-none z-50 transition-transform duration-75 ease-out flex items-center gap-2"
+          className="fixed pointer-events-none z-50 flex items-center gap-3 transition-opacity duration-300"
           style={{ 
-            transform: `translate(${mousePos.x + 15}px, ${mousePos.y + 15}px)` 
+            transform: `translate(${shipPos.x}px, ${shipPos.y}px)` 
           }}
         >
-          <div className="p-2 bg-blue-950/80 backdrop-blur-md border border-cyan-500/40 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.3)] text-cyan-400 animate-pulse">
-            <Ship size={18} className="transform rotate-45" />
+          <div className="relative flex items-center justify-center p-2.5 bg-blue-950/90 backdrop-blur-md border border-cyan-500/50 rounded-xl shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+            {/* Top-Down Container Ship Graphic */}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-cyan-400 transform -rotate-45">
+              <path d="M5 12C5 8.68629 7.68629 6 11 6H13C16.3137 6 19 8.68629 19 12C19 15.3137 16.3137 18 13 18H11C7.68629 18 5 15.3137 5 12Z" fill="#0284c7" fillOpacity="0.4" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="8" y="9" width="8" height="6" rx="1" fill="#22d3ee" />
+              <rect x="10" y="7" width="4" height="3" fill="#38bdf8" />
+            </svg>
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
           </div>
-          <span className="text-[10px] font-mono tracking-widest bg-slate-950/90 border border-blue-900/60 text-cyan-300 px-2 py-0.5 rounded shadow-lg">
-            AIS: ACTIVE
-          </span>
+          <div className="flex flex-col bg-slate-950/90 border border-blue-900/60 px-2.5 py-1 rounded-lg shadow-xl backdrop-blur-md">
+            <span className="text-[10px] font-mono font-bold tracking-widest text-cyan-300">MV PANAMAX LEADER</span>
+            <span className="text-[9px] font-mono text-slate-400">SPEED: 18.4 KNOTS • AIS ACTIVE</span>
+          </div>
         </div>
       )}
 
