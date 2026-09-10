@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WorldMap from '../components/map/WorldMap';
 import { ChevronDown, ArrowLeft, MapPin, Ship, FileText, Package, Activity, Zap } from 'lucide-react';
@@ -19,11 +19,6 @@ export default function Demo() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [forecastReport, setForecastReport] = useState<string | null>(null);
   
-  // Smooth LERP ship animation state
-  const [mousePos, setMousePos] = useState({ x: window.innerWidth - 250, y: 200 });
-  const [shipPos, setShipPos] = useState({ x: window.innerWidth - 250, y: 200 });
-  const [isShipVisible, setIsShipVisible] = useState(true);
-
   const [forecastParams, setForecastParams] = useState({
     loadingPort: 'Hay Point (AUS)',
     dischargePort: 'Paradip Port',
@@ -33,43 +28,67 @@ export default function Demo() {
     portClearance: 'Draft Clearance: 15.8m OK'
   });
 
-  // Track cursor and run smooth LERP physics loop
+  // Direct DOM references for 60fps smooth physics without React state lag
+  const shipRef = useRef<HTMLDivElement>(null);
+  const targetPos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 4 });
+  const currentPos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 4 });
+
   useEffect(() => {
     let animationFrameId: number;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
-      const screenWidth = window.innerWidth;
-      
-      // Restrict ship to the open right margin so it never overlaps the globe or panels
-      const inSafeZone = x > 420 && x < screenWidth - 100 && y > 100 && y < window.innerHeight - 100;
-      
-      if (inSafeZone) {
-        setIsShipVisible(true);
-        setMousePos({ x, y });
-      } else {
-        setIsShipVisible(false);
+      let tx = e.clientX;
+      let ty = e.clientY;
+      const sw = window.innerWidth;
+      const sh = window.innerHeight;
+
+      // 1. Clamp to Left Panel Margin
+      if (tx < 380) tx = 380;
+
+      // 2. Clamp to Right Panel Margin (Dynamic based on if report is open)
+      const rightLimit = forecastReport ? sw - 450 : sw - 40;
+      if (tx > rightLimit) tx = rightLimit;
+
+      // 3. Clamp to Globe (Circular Exclusion Zone in Center)
+      const cx = sw / 2;
+      const cy = sh / 2;
+      const globeRadius = Math.min(sw, sh) * 0.38; // Pushes ship to the outer ring of the globe
+      const dx = tx - cx;
+      const dy = ty - cy;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < globeRadius && distance > 0) {
+        tx = cx + (dx / distance) * globeRadius;
+        ty = cy + (dy / distance) * globeRadius;
       }
+
+      // 4. Vertical Screen Bounds
+      if (ty < 40) ty = 40;
+      if (ty > sh - 60) ty = sh - 60;
+
+      targetPos.current = { x: tx, y: ty };
     };
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Butter-smooth interpolation loop (lower decimal = slower, smoother glide)
+    // 60FPS LERP Loop directly manipulating the DOM style
     const render = () => {
-      setShipPos(prev => ({
-        x: prev.x + (mousePos.x - prev.x) * 0.04,
-        y: prev.y + (mousePos.y - prev.y) * 0.04
-      }));
+      currentPos.current.x += (targetPos.current.x - currentPos.current.x) * 0.08;
+      currentPos.current.y += (targetPos.current.y - currentPos.current.y) * 0.08;
+
+      if (shipRef.current) {
+        // Offset by half the ship's width/height to center it on the cursor
+        shipRef.current.style.transform = `translate(${currentPos.current.x - 30}px, ${currentPos.current.y - 30}px)`;
+      }
       animationFrameId = requestAnimationFrame(render);
     };
-    animationFrameId = requestAnimationFrame(render);
+    render();
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [mousePos]);
+  }, [forecastReport]); // Re-bind if the right panel opens/closes
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -83,7 +102,6 @@ export default function Demo() {
       });
 
       if (!response.ok) throw new Error('Network response was not ok');
-      
       const data = await response.json();
       setForecastReport(data.report);
     } catch (error) {
@@ -143,32 +161,32 @@ export default function Demo() {
           .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
           .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(30, 58, 138, 0.4); border-radius: 10px; }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+          
+          @keyframes gentle-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+          }
+          .animate-bob {
+            animation: gentle-bob 3s ease-in-out infinite;
+          }
         `}
       </style>
 
-      {/* REALISTIC CONTAINER SHIP WITH SLOW LERP PHYSICS */}
-      {isShipVisible && (
-        <div 
-          className="fixed pointer-events-none z-50 flex items-center gap-3 transition-opacity duration-300"
-          style={{ 
-            transform: `translate(${shipPos.x}px, ${shipPos.y}px)` 
-          }}
-        >
-          <div className="relative flex items-center justify-center p-2.5 bg-blue-950/90 backdrop-blur-md border border-cyan-500/50 rounded-xl shadow-[0_0_25px_rgba(6,182,212,0.4)]">
-            {/* Top-Down Container Ship Graphic */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-cyan-400 transform -rotate-45">
-              <path d="M5 12C5 8.68629 7.68629 6 11 6H13C16.3137 6 19 8.68629 19 12C19 15.3137 16.3137 18 13 18H11C7.68629 18 5 15.3137 5 12Z" fill="#0284c7" fillOpacity="0.4" stroke="currentColor" strokeWidth="1.5" />
-              <rect x="8" y="9" width="8" height="6" rx="1" fill="#22d3ee" />
-              <rect x="10" y="7" width="4" height="3" fill="#38bdf8" />
-            </svg>
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
+      {/* CUTE LERP SHIP - ALWAYS VISIBLE, CLAMPED TO BORDERS */}
+      <div 
+        ref={shipRef}
+        className="fixed top-0 left-0 pointer-events-none z-50 flex flex-col items-center justify-center will-change-transform"
+      >
+        <div className="animate-bob flex flex-col items-center">
+          <div className="w-11 h-11 bg-cyan-500/10 backdrop-blur-md rounded-full border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.4)] relative">
+            <Ship size={20} className="text-cyan-300 transform -rotate-12" />
+            <div className="absolute 0 top-0 right-0 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-ping" />
           </div>
-          <div className="flex flex-col bg-slate-950/90 border border-blue-900/60 px-2.5 py-1 rounded-lg shadow-xl backdrop-blur-md">
-            <span className="text-[10px] font-mono font-bold tracking-widest text-cyan-300">MV PANAMAX LEADER</span>
-            <span className="text-[9px] font-mono text-slate-400">SPEED: 18.4 KNOTS • AIS ACTIVE</span>
+          <div className="mt-2 bg-slate-900/90 backdrop-blur-md border border-cyan-500/30 px-3 py-1 rounded-full shadow-lg">
+            <span className="text-[9px] font-bold tracking-widest text-cyan-200">AIS ACTIVE</span>
           </div>
         </div>
-      )}
+      </div>
 
       {/* 3D GLOBE CONTAINER */}
       <div className="absolute inset-0 z-0">
