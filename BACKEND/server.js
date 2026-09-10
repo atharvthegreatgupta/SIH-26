@@ -72,6 +72,11 @@ app.post('/api/forecast', async (req, res) => {
   }
 });
 
+app.get('/' , async (req, res) =>{
+
+  res.send("yooo its me the great dude");
+} )
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Voyage Forecast API listening on http://localhost:${PORT}`);
