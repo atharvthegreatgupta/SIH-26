@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WorldMap from '../components/map/WorldMap';
 import { ChevronDown, ArrowLeft, MapPin, Ship, FileText, Package, Activity, Zap } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 // import ReactMarkdown from 'react-markdown';
 
@@ -177,21 +178,30 @@ export default function Demo() {
               <h2 className="text-lg font-bold text-white tracking-tight">AI Voyage Analysis</h2>
             </div>
             
-            {/* Reverted to a safe, scrollable pre-formatted text block */}
-            <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto custom-scrollbar pr-3">
-              {forecastReport}
+            {/* Markdown Container with safe custom styling */}
+            <div className="text-sm text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto custom-scrollbar pr-3">
+                <ReactMarkdown 
+                  components={{
+                    p: ({node, ...props}) => <p className="mb-3 text-slate-300" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-bold text-cyan-300" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1.5" {...props} />,
+                    li: ({node, ...props}) => <li className="text-slate-200" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="font-bold text-white text-base mt-4 mb-1.5 border-b border-slate-700/50 pb-1" {...props} />
+                  }}
+                >
+                  {forecastReport}
+                </ReactMarkdown>
+              </div>
+              
+              <button 
+                onClick={() => setForecastReport(null)}
+                className="mt-4 py-2 w-full text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
+              >
+                Dismiss Report
+              </button>
             </div>
-            
-            <button 
-              onClick={() => setForecastReport(null)}
-              className="mt-4 py-2 w-full text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
-            >
-              Dismiss Report
-            </button>
           </div>
-        </div>
       )}
-
     </div>
   );
 }
