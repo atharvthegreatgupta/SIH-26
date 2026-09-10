@@ -50,7 +50,7 @@ export default function Demo() {
       setForecastReport(data.report); // Expecting backend to send { report: "..." }
     } catch (error) {
       console.error("Error generating report:", error);
-      setForecastReport("Error connecting to the backend. Ensure server.js is running on port 5000.");
+      setForecastReport("Error connecting to the backend. Render instance may be waking up, please try again.");
     } finally {
       setIsGenerating(false);
     }
