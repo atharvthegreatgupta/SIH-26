@@ -32,20 +32,19 @@ export default function Demo() {
     portClearance: 'Draft Clearance: 15.8m OK'
   });
 
-  // Track cursor movement with boundary checks to avoid UI panels and globe
+  // Track cursor movement with strict boundary checks to keep ship out of the globe and panels
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const x = e.clientX;
       const y = e.clientY;
       const screenWidth = window.innerWidth;
       
-      // Boundaries: Left panel is ~370px wide, Right panel is ~440px wide. 
-      // Center zone is the globe. Hide ship if it enters UI zones.
-      const inLeftPanel = x < 380;
-      const inRightPanel = x > screenWidth - 450;
-      const inTopNav = y < 90;
+      // Define UI and Globe exclusion zones
+      const inLeftPanel = x < 370 && y < 650;
+      const inRightPanel = x > screenWidth - 440 && forecastReport !== null;
+      const inGlobeArea = x >= 350 && x <= screenWidth - 420; // Blocks it from entering the center globe
 
-      if (inLeftPanel || inRightPanel || inTopNav) {
+      if (inLeftPanel || inRightPanel || inGlobeArea) {
         setIsShipVisible(false);
       } else {
         setIsShipVisible(true);
@@ -55,7 +54,7 @@ export default function Demo() {
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [forecastReport]);
 
   const handleGenerate = async () => {
     setIsGenerating(true);

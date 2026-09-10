@@ -79,7 +79,7 @@ export default function WorldMap() {
   }, []);
 
   return (
-    <div className="w-full h-full flex items-center justify-center cursor-move bg-[#e6e9ee]">
+    <div className="w-full h-full flex items-center justify-center cursor-move bg-[#070b14]">
       <Globe
         ref={globeRef}
         width={windowSize.width}
