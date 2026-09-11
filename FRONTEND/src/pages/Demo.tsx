@@ -180,7 +180,6 @@ export default function Demo() {
         <div className="animate-bob flex flex-col items-center">
           <div className="w-11 h-11 bg-cyan-500/10 backdrop-blur-md rounded-full border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.4)] relative">
             <Ship size={20} className="text-cyan-300 transform -rotate-12" />
-            <div className="absolute 0 top-0 right-0 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-ping" />
           </div>
         </div>
       </div>
