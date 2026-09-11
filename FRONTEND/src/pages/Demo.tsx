@@ -182,9 +182,6 @@ export default function Demo() {
             <Ship size={20} className="text-cyan-300 transform -rotate-12" />
             <div className="absolute 0 top-0 right-0 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-ping" />
           </div>
-          <div className="mt-2 bg-slate-900/90 backdrop-blur-md border border-cyan-500/30 px-3 py-1 rounded-full shadow-lg">
-            <span className="text-[9px] font-bold tracking-widest text-cyan-200">AIS ACTIVE</span>
-          </div>
         </div>
       </div>
 
